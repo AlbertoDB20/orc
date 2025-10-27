@@ -35,9 +35,10 @@ SPHERE_RGBA = np.array([1, 0, 0, 1.])
 
 DO_WARM_START = True
 SOLVER_TOLERANCE = 1e-4
-SOLVER_MAX_ITER = 3
+SOLVER_MAX_ITER = 3             
 
-SIMULATOR = "mujoco" #"mujoco" or "pinocchio" or "ideal"
+# mujoco is the most realistic, but it is not installed here. 
+SIMULATOR = "ideal"     # "mujoco" or "pinocchio" or "ideal"
 POS_BOUNDS_SCALING_FACTOR = 0.2
 VEL_BOUNDS_SCALING_FACTOR = 2.0
 qMin = POS_BOUNDS_SCALING_FACTOR * robot.model.lowerPositionLimit
@@ -53,7 +54,9 @@ N = 6           # MPC time horizon
 # q_des = np.array([0, -1.57, 0, 0, 0, 0]) # desired joint configuration
 q_des = q0.copy()
 J = 1
-q_des[J] = qMin[J] + 0.01*(qMax[J] - qMin[J])
+q_des[J] = qMin[J] + 0.01*(qMax[J] - qMin[J])   # desired final config is very close to qMin, so very near a bound limit of the joint. 
+
+# WEIGHT
 w_p = 1e2   # position weight
 w_v = 0e-6  # velocity weight
 w_a = 1e-5  # acceleration weight
@@ -70,7 +73,7 @@ else:
     simu.init(q0, dq0)
     simu.display(q0)
     
-
+# parametric problem --> certain part of the problem have to be setted since parametric. Useful to avoid to redefine the problem at each iteration, but instead is sufficient to change parameters. 
 print("Create optimization parameters")
 opti = cs.Opti()
 param_x_init = opti.parameter(nx)
@@ -115,12 +118,12 @@ print("Add initial conditions")
 opti.subject_to(X[0] == param_x_init)
 for k in range(N):     
     # print("Compute cost function")
-    cost += w_p * (X[k][:nq] - param_q_des).T @ (X[k][:nq] - param_q_des)
-    cost += w_v * X[k][nq:].T @ X[k][nq:]
-    cost += w_a * U[k].T @ U[k]
+    cost += w_p * (X[k][:nq] - param_q_des).T @ (X[k][:nq] - param_q_des)   # cost function 
+    cost += w_v * X[k][nq:].T @ X[k][nq:]   # penalty function
+    cost += w_a * U[k].T @ U[k]     # penalty function 
 
     # print("Add dynamics constraints")
-    opti.subject_to(X[k+1] == X[k] + dt * f(X[k], U[k]))
+    opti.subject_to(X[k+1] == X[k] + dt * f(X[k], U[k]))   # dynamics
 
     # print("Add torque constraints")
     opti.subject_to( opti.bounded(tau_min, inv_dyn(X[k], U[k]), tau_max))
@@ -149,18 +152,44 @@ if(SIMULATOR=="mujoco" and ADD_SPHERE):
 
 # Solve the problem to convergence the first time
 x = np.concatenate([q0, dq0])
-opti.set_value(param_q_des, q_des)
+opti.set_value(param_q_des, q_des)      # set value for parameters
 opti.set_value(param_x_init, x)
 sol = opti.solve()
 
 # set the maximum number of iterations to a small number
-opts["ipopt.max_iter"] = SOLVER_MAX_ITER 
+opts["ipopt.max_iter"] = SOLVER_MAX_ITER    # after the first iteration (1000 iterations), I will do ONLY SOLVER_MAX_ITER = 3 iterations, since I want to refine the problem (first iteration is fundamental for convergency purpose)
 opti.solver("ipopt", opts)
 
 print("Start the MPC loop")
 for i in range(N_sim):
 
     # implement here the MPC loop with warm-start
+    # make sure to warm start the solver
+    # use opti.set_initial(...) to specify initial guesses for the decision variables 
+    # specify the initial state parameters param_x_init using opti.set_value(...) as above
+    # use a try-except block to call opti.solve() because it may returns an error.
+
+    if(DO_WARM_START):
+        for k in range(N):
+            opti.set_initial(X[k], sol.value(X[k+1]))
+        for k in range(N-1):
+            opti.set_initial(U[k], sol.value(U[k+1]))
+
+        # initial guesses for the last state and control input
+        opti.set_initial(X[-1], sol.value(X[-1]))
+        opti.set_initial(U[-1], sol.value(U[-1]))
+
+    start_time = clock()
+    try:
+        opti.set_value(param_x_init, x)
+        sol = opti.solve()
+    except:
+        #print("There was an error while solving the problem")
+        sol = opti.debug
+        
+    end_time = clock()
+
+    print("Time step: " , i, "Comp. time %.3f"%(end_time-start_time))
     
     tau = inv_dyn(sol.value(X[0]), sol.value(U[0])).toarray().squeeze()
     if(SIMULATOR=="mujoco"):
@@ -176,7 +205,7 @@ for i in range(N_sim):
         x = sol.value(X[1])
         simu.display(x[:nq])
         
-    
+    # Error messages to highlight violations in position
     if( np.any(x[:nq] > qMax)):
         print(colored("\nUPPER POSITION LIMIT VIOLATED ON JOINTS", "red"), np.where(x[:nq]>qMax)[0])
     if( np.any(x[:nq] < qMin)):
