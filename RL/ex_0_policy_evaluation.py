@@ -44,7 +44,7 @@ if __name__=="__main__":
     CONVERGENCE_THR   = 1e-4        # convergence threshold
     NPRINT            = 10          # Print info every NPRINT iterations
     PLOT              = True        # Plot the V table
-    DISCOUNT          = 0.9        # Discount factor 
+    DISCOUNT          = 0.9        # Larger Discount factor means Larger horizon means more time required to converge.
     
     ### --- Environment
     nq=51   # number of discretization steps for the joint angle q

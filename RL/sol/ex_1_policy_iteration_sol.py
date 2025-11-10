@@ -6,7 +6,7 @@ Created on Tue Nov 23 05:30:56 2021
 @author: adelprete
 """
 import numpy as np
-#from sol.ex_0_policy_evaluation_prof import policy_eval
+#from orc.RL.sol.ex_0_policy_evaluation_prof import policy_eval
 from ex_0_policy_evaluation import policy_eval
 
 def policy_iteration(env, gamma, pi, V, maxEvalIters, maxImprIters, value_thr, policy_thr, plot=False, nprint=1000):
@@ -25,16 +25,40 @@ def policy_iteration(env, gamma, pi, V, maxEvalIters, maxImprIters, value_thr, p
     # IMPLEMENT POLICY ITERATION HERE
     
     # Create an array to store the Q value of different controls
+    Q = np.zeros(env.nu)
     # Iterate at most maxImprIters loops
-    # Evaluate current policy using policy_eval for at most maxEvalIters iterations 
-    # Make a copy of current policy table
-    # The number of states is env.nx
-    # The number of controls is env.nu
-    # You can set the state of the robot using env.reset(x)
-    # You can simulate the robot using: x_next,cost = env.step(u)
-    # You can find the index corresponding to the minimum of an array with np.argmin(Q)
-    # Check for convergence based on how much the policy has changed from the previous loop
-    # you can plot the policy with: env.plot_policy(pi)
+    for k in range(maxImprIters):
+        # Evaluate current policy using policy_eval for at most maxEvalIters iterations 
+        V = policy_eval(env, gamma, pi, V, maxEvalIters, value_thr, plot, nprint)
+        # Make a copy of current policy table
+        pi_old = np.copy(pi)
+        # The number of states is env.nx
+        # The number of controls is env.nu
+        for x in range(env.nx):
+            for u in range(env.nu):
+                # You can set the state of the robot using env.reset(x)
+                env.reset(x)
+                # You can simulate the robot using: x_next,cost = env.step(u)
+                x_next, cost = env.step(u)
+                Q[u] = cost + gamma * V[max]
+            # You can find the index corresponding to the minimum of an array with np.argmin(Q)
+            pi[x] = np.argmin(Q)
+        # Check for convergence based on how much the policy has changed from the previous loop
+        err = np.max(np.abs(pi-pi_old))
+        if(err < policy_thr):
+            print("PI has converged at iter ", k, "|pi-pi_old| = ", err)
+            if(plot):
+                env.plot_policy(pi)
+                env.plot_V_table(V)
+            break
+
+        # you can plot the policy with: env.plot_policy(pi)
+        if(k%nprint):
+            print("PI iter ", k, "|pi-pi_old|=", err)
+            if(plot):
+                env.plot_policy(pi)
+                env.plot_V_table(V)
+                
     # You can plot the Value table with: env.plot_V_table(V)
     # At the end return the policy pi
     return pi

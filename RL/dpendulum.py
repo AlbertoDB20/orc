@@ -5,10 +5,16 @@ import time
     
 
 class DPendulum:
-    ''' Discrete Pendulum environment. Joint angle, velocity and torque are discretized
-        with the specified steps. Joint velocity and torque are saturated. 
+    ''' Discrete Pendulum environment. Joint angle, velocity and torque are discretized with the specified steps. 
+        Joint velocity and torque are saturated. 
         Guassian noise can be added in the dynamics. 
         Cost is -1 if the goal state has been reached, zero otherwise.
+
+        number of states: 
+        1 DoF: 51*21 = 1071
+        2 DoF: 1071^2 = 1147041 
+
+        does not scale well.... 
     '''
     def __init__(self, nq=51, nv=21, nu=11, vMax=5, uMax=5, dt=0.2, ndt=1, noise_stddev=0, which_viewer='meshcat'):
         self.pendulum = Pendulum(1,noise_stddev, which_viewer)

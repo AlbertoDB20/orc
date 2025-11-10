@@ -22,13 +22,30 @@ def policy_eval(env, gamma, pi, V, maxIters, threshold, plot=False, nprint=1000)
     # IMPLEMENT POLICY EVALUATION HERE
     
     # Iterate for at most maxIters loops
-    # You can make a copy of the V table using np.copy
-    # The number of states is env.nx
-    # Use env.reset(x) to set the robot state
-    # To simulate the system use env.step(u) which returns the next state and the cost
-    # Update V-Table with Bellman's equation
-    # Check for convergence using the difference between the current and previous V table
-    # You can plot the V table with the function env.plot_V_table(V)
-    # At the env return the V table
+    for k in range(maxIters):
+        # You can make a copy of the V table using np.copy
+        V_old  = np.copy(V)
+        # The number of states is env.nx
+        for x in range(env.x):
+            # Use env.reset(x) to set the robot state
+            env.reset(x)
+            u = pi(env, x)
+            # To simulate the system use env.step(u) which returns the next state and the cost
+            x_next, cost = env.step(u)
+            # Update V-Table with Bellman's equation
+            V[x] = cost + gamma * V_old[x_next]
+        
+        # Check for convergence using the difference between the current and previous V table
+        err = np.max(np.abs(V-V_old))           # infinite norm definition
+        if(err < threshold):
+            print("Iter", k,"policy eval has converged",err)
+            break
+
+        if(k%nprint==0):
+            print("Iter",k,"[V-V_old]=",err)
+            # You can plot the V table with the function env.plot_V_table(V)
+            if(plot):
+                env.plot_V_table(V)
     
+    # At the env return the V table
     return V
