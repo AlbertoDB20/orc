@@ -58,7 +58,9 @@ if __name__=="__main__":
         #render_policy(env, policy)
         from sol.ex_0_policy_evaluation_sol_prof import policy_eval
         print("\nGonna compute real Value function")
-        V_real = policy_eval(env, DISCOUNT, policy, np.zeros(env.nx), N_EPISODS, CONVERGENCE_THR, False)
+        V_real = policy_eval(env, DISCOUNT, policy, np.zeros(env.nx), N_EPISODS, CONVERGENCE_THR, True, NPRINT)
+
+
     elif(env_name == 'ABC'):
         DISCOUNT          = 1     # Discount factor 
         N_EPISODS         = 100    # number of episodes
