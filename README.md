@@ -64,11 +64,10 @@ https://github.com/mfocchi/lab-docker
 ## Installation instructions for native MAC OS
 While on Mac OS you can still use docker, it may be worth it to go through the initial effort of setting up a native installation to gain computational speed. For instance, on my M2 mac, using docker it took about 13 s to solve a simple optimal control problem for a robot manipulator. When switching to a native installation the time went down to 2 s. 
 
-Use pip to install these packages:
+Use pip to install these packages (the specified versions are compatible with python 3.9):
 ```
-pip install numpy matplotlib casadi==3.6.5 example-robot-data 'adam-robotics[casadi]' tsid meshcat quadprog
+pip install numpy matplotlib casadi==3.7.2 example-robot-data example-robot-data-loaders 'adam-robotics[casadi]==0.3.0' tsid meshcat quadprog
 ```
-The latest version of casadi would be 3.6.6, but it gave me problems, so I suggest you use 3.6.5.
 
 After that you should configure your environment variables by editing the file `.zshrc` that is located in your home folder. For instance you can open it with Visual Studio Code by using the following command:
 ```
@@ -87,20 +86,23 @@ Follow these instructions if you have a computer with an Ubuntu Operating System
 
 Open a terminal and execute the following commands:
 ```
-sudo apt install terminator python3-numpy python3-scipy python3-matplotlib spyder3 curl
+sudo apt install python3-numpy python3-scipy python3-matplotlib curl
 
-sudo sh -c "echo 'deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -sc) robotpkg' >> /etc/apt/sources.list.d/robotpkg.list"
+sudo mkdir -p /etc/apt/keyrings
 
-sudo sh -c "echo 'deb [arch=amd64] http://robotpkg.openrobots.org/wip/packages/debian/pub $(lsb_release -sc) robotpkg' >> /etc/apt/sources.list.d/robotpkg.list"
+curl http://robotpkg.openrobots.org/packages/debian/robotpkg.asc \
+     | sudo tee /etc/apt/keyrings/robotpkg.asc
 
-curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | sudo apt-key add -
-sudo apt-get update
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/robotpkg.asc] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" \
+     | sudo tee /etc/apt/sources.list.d/robotpkg.list
+
+sudo apt update
 ```
-On Ubuntu 20.04 install these packages:
+On Ubuntu 22.04 install these packages:
 ```
-sudo apt install robotpkg-py38-pinocchio robotpkg-py38-example-robot-data robotpkg-urdfdom robotpkg-py38-qt5-gepetto-viewer-corba robotpkg-py38-quadprog robotpkg-py38-tsid
+sudo apt install robotpkg-py310-pinocchio robotpkg-py310-example-robot-data robotpkg-urdfdom robotpkg-py310-qt5-gepetto-viewer-corba robotpkg-py310-quadprog robotpkg-py310-tsid
 ```
-For other versions of the Ubuntu OS you might need to use a different version of the python packages (e.g., on Ubuntu 22.04 you need to use py310 instead of py38, while on Ubuntu 24.04 you need to use py312). Configure the environment variables by adding the following lines to your file ~/.bashrc (you can use the software gedit to do so):
+For other versions of the Ubuntu OS you might need to use a different version of the python packages (e.g., on Ubuntu 24.04 you need to use py312). Configure the environment variables by adding the following lines to your file ~/.bashrc (you can use the software gedit to do so):
 ```
 export PATH=/opt/openrobots/bin:$PATH
 export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:$PKG_CONFIG_PATH
@@ -111,7 +113,7 @@ export PYTHONPATH=$PYTHONPATH:<folder_containing_orc>
 ```
 where <folder_containing_orc> is the folder containing the "orc" folder, which in turns contains all the python code of this class. Pay attention to the python version (e.g. python3.8)  in the name of the python folder (PYTHONPATH variable), which may be different from the one you have on your machine, depending on which OS version you have. 
 
-For using the adam and the meshcat viewer you need to install them with pip:
+For using the adam-robotics library and the meshcat viewer you need to install them with pip:
 ```
 pip install adam-robotics[casadi] meshcat
 ```
